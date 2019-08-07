@@ -1,0 +1,48 @@
+postgresql-10 (10.4-1) unstable; urgency=medium
+
+  If you are using the "adminpack" extension, perform "ALTER EXTENSION
+  adminpack UPDATE" in each database in which adminpack is installed.
+  (CVE-2018-1115)
+
+  Some functions were incorrectly not marked as VOLATILE or PARALLEL UNSAFE. If
+  you are using any of these functions, consult the release notes for
+  instructions.
+
+    query_to_xml cursor_to_xml cursor_to_xmlschema query_to_xmlschema
+    query_to_xml_and_xmlschema brin_summarize_new_values brin_summarize_range
+    brin_desummarize_range gin_clean_pending_list cursor_to_xml
+    cursor_to_xmlschema ts_rewrite ts_stat
+    binary_upgrade_create_empty_extension pg_import_system_collations
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 08 May 2018 16:02:19 +0200
+
+postgresql-10 (10.3-1) unstable; urgency=medium
+
+  If you run an installation where the users are mutually trusting or if you
+  maintain an application or extension that is intended for use in arbitrary
+  situations, it is highly recommended that you read the release notes
+  regarding changes around "search_path", and take suitable steps to ensure
+  that your installation or code is secure:
+
+    https://www.postgresql.org/docs/10/static/release-10-3.html#id-1.11.6.5.5
+
+  In addition, these changes may cause functions used in index expressions or
+  materialized views to fail during auto-analyze or when reloading from a dump.
+  After upgrading, please monitor the server logs for such problems and fix any
+  affected functions.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 27 Feb 2018 12:57:11 +0100
+
+postgresql-10 (10.2-1) unstable; urgency=medium
+
+  If you are using contrib/cube's ~> operator, see the release notes for
+  details on the changed semantics and necessary follow-up actions.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Wed, 07 Feb 2018 13:56:26 +0100
+
+postgresql-10 (10.1-1) unstable; urgency=medium
+
+  If you are using BRIN indexes, it may be necessary to reindex existing
+  indexes. See the release notes for details.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Wed, 08 Nov 2017 10:47:26 +0100

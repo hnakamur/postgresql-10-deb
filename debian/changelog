@@ -1,0 +1,364 @@
+postgresql-10 (10.10-1.pgdg18.04+1) bionic-pgdg; urgency=medium
+
+  * Rebuild for bionic-pgdg.
+  * Changes applied by generate-pgdg-source:
+    + Moving lib packages to component 10.
+
+ -- PostgreSQL on Debian and Ubuntu <pgsql-pkg-debian@lists.postgresql.org>  Wed, 07 Aug 2019 13:51:56 +0200
+
+postgresql-10 (10.10-1) unstable; urgency=medium
+
+  * New upstream version.
+
+    + Fixes regression in ALTER TABLE on multiple columns. (Closes: #932247)
+
+    + Require schema qualification to cast to a temporary type when using
+      functional cast syntax (Noah Misch)
+
+      We have long required invocations of temporary functions to explicitly
+      specify the temporary schema, that is pg_temp.func_name(args). Require
+      this as well for casting to temporary types using functional notation,
+      for example pg_temp.type_name(arg). Otherwise it's possible to capture a
+      function call using a temporary object, allowing privilege escalation in
+      much the same ways that we blocked in CVE-2007-2138. (CVE-2019-10208)
+
+  * Allow overriding the startup command suggested by initdb.
+    (See: #872660)
+  * debian/pycompat: Obsolete, remove.
+  * debian/patches: Add missing patch documentation.
+  * debian/rules: Use /usr/share/dpkg/pkg-info.mk and vendor.mk for
+    --with-extra-version.
+  * debian/*.symbols: Add Build-Depends-Package information.
+  * debian/tests: Also run regression tests.
+  * debian/tests/control: Add fakeroot to dependencies.
+
+ -- Christoph Berg <myon@debian.org>  Wed, 07 Aug 2019 13:51:56 +0200
+
+postgresql-10 (10.9-1) unstable; urgency=medium
+
+  * New upstream version.
+    + Fix buffer-overflow hazards in SCRAM verifier parsing
+      (Jonathan Katz, Heikki Linnakangas, Michael Paquier)
+
+      Any authenticated user could cause a stack-based buffer overflow by
+      changing their own password to a purpose-crafted value.  In addition to
+      the ability to crash the PostgreSQL server, this could suffice for
+      executing arbitrary code as the PostgreSQL operating system account.
+
+      A similar overflow hazard existed in libpq, which could allow a rogue
+      server to crash a client or perhaps execute arbitrary code as the
+      client's operating system account.
+
+      The PostgreSQL Project thanks Alexander Lakhin for reporting this
+      problem.  (CVE-2019-10164)
+
+ -- Christoph Berg <myon@debian.org>  Tue, 18 Jun 2019 11:09:48 +0200
+
+postgresql-10 (10.8-1) unstable; urgency=medium
+
+  * New upstream version.
+    + Prevent row-level security policies from being bypassed via selectivity
+      estimators (Dean Rasheed)
+
+      Some of the planner's selectivity estimators apply user-defined
+      operators to values found in pg_statistic (e.g., most-common values).
+      A leaky operator therefore can disclose some of the entries in a data
+      column, even if the calling user lacks permission to read that column.
+      In CVE-2017-7484 we added restrictions to forestall that, but we failed
+      to consider the effects of row-level security.  A user who has SQL
+      permission to read a column, but who is forbidden to see certain rows
+      due to RLS policy, might still learn something about those rows'
+      contents via a leaky operator.  This patch further tightens the rules,
+      allowing leaky operators to be applied to statistics data only when
+      there is no relevant RLS policy.  (CVE-2019-10130)
+
+ -- Christoph Berg <myon@debian.org>  Tue, 07 May 2019 12:44:34 +0200
+
+postgresql-10 (10.7-1) unstable; urgency=medium
+
+  * New upstream version.
+  * Drop explicit xz compression for .debs.
+  * Depend on locales | locales-all. Suggested by Elrond, thanks!
+    (Closes: #916655)
+  * Build-Depend on tcl-dev instead of on a specific version.
+  * initdb doesn't like LANG and LC_ALL to contradict, unset LANG and
+    LC_CTYPE at test time. (Closes: #917764)
+  * On purge, ask the user if they want to remove clusters. (Closes: #911940)
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Thu, 14 Feb 2019 15:11:24 +0100
+
+postgresql-10 (10.6-1) unstable; urgency=medium
+
+  * New upstream version.
+    + Ensure proper quoting of transition table names when pg_dump emits
+      CREATE TRIGGER ... REFERENCING commands. (CVE-2018-16850)
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 06 Nov 2018 15:08:01 +0100
+
+postgresql-10 (10.5-2) unstable; urgency=medium
+
+  * Revert module_srcdir hack, rely on pg_buildext for reproducible PGXS
+    module builds instead.
+  * Enable dtrace support.
+  * psql uses sensible-editor, depend on sensible-utils.
+  * Add lintian overrides for plugins that link no external libraries.
+  * configure: Hard-code paths to /bin/mkdir -p and /bin/tar.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Mon, 15 Oct 2018 17:25:18 +0200
+
+postgresql-10 (10.5-1) unstable; urgency=medium
+
+  * New upstream version.
+    + Fix failure to reset libpq's state fully between connection attempts
+
+      An unprivileged user of dblink or postgres_fdw could bypass the checks
+      intended to prevent use of server-side credentials, such as a ~/.pgpass
+      file owned by the operating-system user running the server.  Servers
+      allowing peer authentication on local connections are particularly
+      vulnerable.  Other attacks such as SQL injection into a postgres_fdw
+      session are also possible. Attacking postgres_fdw in this way requires
+      the ability to create a foreign server object with selected connection
+      parameters, but any user with access to dblink could exploit the
+      problem. In general, an attacker with the ability to select the
+      connection parameters for a libpq-using application could cause
+      mischief, though other plausible attack scenarios are harder to think
+      of. Our thanks to Andrew Krasichkov for reporting this issue.
+      (CVE-2018-10915)
+
+    + Fix INSERT ... ON CONFLICT UPDATE through a view that isn't just SELECT
+      FROM ...
+
+      Erroneous expansion of an updatable view could lead to crashes or
+      attribute ... has the wrong type errors, if the view's SELECT list
+      doesn't match one-to-one with the underlying table's columns.
+      Furthermore, this bug could be leveraged to allow updates of columns
+      that an attacking user lacks UPDATE privilege for, if that user has
+      INSERT and UPDATE privileges for some other column(s) of the table. Any
+      user could also use it for disclosure of server memory. (CVE-2018-10925)
+
+  * Remove version checking for libselinux1-dev, 2.1.10 is old enough now.
+  * Drop support for tcl8.5.
+  * Use dh_auto_configure to correctly seed the build architecture.
+  * Filter -fdebug-prefix-map and -ffile-prefix-map in more places, and make
+    PGXS modules build reproducibly.
+  * Add new pgtypes header and symbol.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 07 Aug 2018 10:56:16 +0200
+
+postgresql-10 (10.4-2) unstable; urgency=medium
+
+  * Update libpq_pgport in Makefile.global to find libpgcommon/libpgport in
+    pkglibdir.
+
+ -- Christoph Berg <myon@debian.org>  Sat, 12 May 2018 17:57:49 +0200
+
+postgresql-10 (10.4-1) unstable; urgency=medium
+
+  * New upstream version.
+    + Remove public execute privilege from contrib/adminpack's
+      pg_logfile_rotate() function. (CVE-2018-1115)
+
+    + Fix incorrect volatility and parallel-safety markings on a few built-in
+      functions.
+
+  * Move libpgport.a, libpgcommon.a, and libpgfeutils.a from libdir to
+    pkglibdir.
+  * Revert "B-D on python3-distutils | python3-dev (<< 3.6.4~rc1-2)".
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 08 May 2018 16:02:19 +0200
+
+postgresql-10 (10.3-2) unstable; urgency=medium
+
+  * Improve wording of NEWS entry on search_path changes. Thanks Chris Lamb!
+    (Closes: #891898)
+  * Disable spinlocks on riscv64, thanks Aurelien Jarno! (Closes: #892807)
+  * B-D on python3-distutils | python3-dev (<< 3.6.4~rc1-2).
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Wed, 21 Mar 2018 13:56:34 +0100
+
+postgresql-10 (10.3-1) unstable; urgency=medium
+
+  * New upstream version.
+
+    If you run an installation in which not all users are mutually
+    trusting, or if you maintain an application or extension that is
+    intended for use in arbitrary situations, it is strongly recommended
+    that you read the documentation changes described in the first changelog
+    entry below, and take suitable steps to ensure that your installation or
+    code is secure.
+
+    Also, the changes described in the second changelog entry below may
+    cause functions used in index expressions or materialized views to fail
+    during auto-analyze, or when reloading from a dump.  After upgrading,
+    monitor the server logs for such problems, and fix affected functions.
+
+    + Document how to configure installations and applications to guard
+      against search-path-dependent trojan-horse attacks from other users
+
+      Using a search_path setting that includes any schemas writable by a
+      hostile user enables that user to capture control of queries and then
+      run arbitrary SQL code with the permissions of the attacked user.  While
+      it is possible to write queries that are proof against such hijacking,
+      it is notationally tedious, and it's very easy to overlook holes.
+      Therefore, we now recommend configurations in which no untrusted schemas
+      appear in one's search path.
+      (CVE-2018-1058)
+
+    + Avoid use of insecure search_path settings in pg_dump and other client
+      programs
+
+      pg_dump, pg_upgrade, vacuumdb and other PostgreSQL-provided applications
+      were themselves vulnerable to the type of hijacking described in the
+      previous changelog entry; since these applications are commonly run by
+      superusers, they present particularly attractive targets.  To make them
+      secure whether or not the installation as a whole has been secured,
+      modify them to include only the pg_catalog schema in their search_path
+      settings. Autovacuum worker processes now do the same, as well.
+
+      In cases where user-provided functions are indirectly executed by these
+      programs -- for example, user-provided functions in index expressions --
+      the tighter search_path may result in errors, which will need to be
+      corrected by adjusting those user-provided functions to not assume
+      anything about what search path they are invoked under.  That has always
+      been good practice, but now it will be necessary for correct behavior.
+      (CVE-2018-1058)
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 27 Feb 2018 12:54:34 +0100
+
+postgresql-10 (10.2-1) unstable; urgency=medium
+
+  * New upstream version.
+    + Fix processing of partition keys containing multiple expressions
+      (CVE-2018-1052)
+
+    + Ensure that all temporary files made by pg_upgrade are
+      non-world-readable (CVE-2018-1053)
+
+    + Change the behavior of contrib/cube's cube ~> int operator to make it
+      compatible with KNN search.
+
+      The meaning of the second argument (the dimension selector) has been
+      changed to make it predictable which value is selected even when
+      dealing with cubes of varying dimensionalities.
+
+      This is an incompatible change, but since the point of the operator
+      was to be used in KNN searches, it seems rather useless as-is.
+      After installing this update, any expression indexes or materialized
+      views using this operator will need to be reindexed/refreshed.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Wed, 07 Feb 2018 13:50:31 +0100
+
+postgresql-10 (10.1-3) unstable; urgency=medium
+
+  * Suppress build variability in schemapg.h.
+  * Include package version number in "extra version" so it is reported by
+    "psql --version" and friends.
+  * postgresql-10.postinst: Ignore command-with-path-in-maintainer-script.
+  * debian/rules: Set DEB_HOST_* via /usr/share/dpkg/architecture.mk.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Thu, 18 Jan 2018 13:18:14 +0100
+
+postgresql-10 (10.1-2) unstable; urgency=medium
+
+  * Drop dbg package in favor of dbgsym packages.
+  * Reimplement /usr/bin/pg_config in perl. This makes libpq-dev cross-
+    compilation friendly (Closes: #794103), and unbreaks co-installation of
+    the split dbgsym packages because we previously installed the same
+    pg_config twice.
+  * Show package version number in version().
+  * Remove actual build path from Makefile.global for reproducibility.
+
+ -- Christoph Berg <myon@debian.org>  Thu, 14 Dec 2017 21:14:32 +0100
+
+postgresql-10 (10.1-1) unstable; urgency=medium
+
+  * New upstream version.
+
+    + Ensure that INSERT ... ON CONFLICT DO UPDATE checks table permissions
+      and RLS policies in all cases (Dean Rasheed)
+
+      The update path of INSERT ... ON CONFLICT DO UPDATE requires SELECT
+      permission on the columns of the arbiter index, but it failed to check
+      for that in the case of an arbiter specified by constraint name. In
+      addition, for a table with row level security enabled, it failed to
+      check updated rows against the table's SELECT policies (regardless of
+      how the arbiter index was specified). (CVE-2017-15099)
+
+    + Fix crash due to rowtype mismatch in json{b}_populate_recordset()
+      (Michael Paquier, Tom Lane)
+
+      These functions used the result rowtype specified in the FROM ... AS
+      clause without checking that it matched the actual rowtype of the
+      supplied tuple value.  If it didn't, that would usually result in a
+      crash, though disclosure of server memory contents seems possible as
+      well. (CVE-2017-15098)
+
+    + Fix BRIN index summarization to handle concurrent table extension
+      correctly (Álvaro Herrera)
+
+      Previously, a race condition allowed some table rows to be omitted from
+      the index.  It may be necessary to reindex existing BRIN indexes to
+      recover from past occurrences of this problem.
+
+  * Remove empty conf.d directory on purge, even when postgresql-common was
+    already removed. (Closes: #877264)
+  * Remove docbook-dsssl and openjade from Build-Depends, not needed anymore.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Wed, 08 Nov 2017 10:40:59 +0100
+
+postgresql-10 (10.0-1) unstable; urgency=medium
+
+  * First PostgreSQL 10 stable release.
+
+ -- Christoph Berg <myon@debian.org>  Wed, 04 Oct 2017 20:29:51 +0200
+
+postgresql-10 (10~rc1-1) unstable; urgency=medium
+
+  * Team upload.
+  * First PostgreSQL 10 release candidate.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 19 Sep 2017 12:03:48 +0200
+
+postgresql-10 (10~beta4-1) experimental; urgency=medium
+
+  * Team upload.
+  * Fourth PostgreSQL 10 Beta release.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 29 Aug 2017 11:57:43 +0200
+
+postgresql-10 (10~beta3-1) experimental; urgency=medium
+
+  * Team upload.
+  * Third PostgreSQL 10 Beta release.
+  * debian/rules: Unconditionally use DEB_BUILD_MAINT_OPTIONS=hardening=+all.
+    The old logic is kept around for compiling on older distributions.
+  * Remove long obsolete --with-krb5 and move c/ldflags to configure switches.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 08 Aug 2017 09:49:12 +0200
+
+postgresql-10 (10~beta2-1) experimental; urgency=medium
+
+  * Team upload.
+  * Second PostgreSQL 10 Beta release.
+  * On regression test failure, show newest three log files instead of relying
+    on file age = 0 min.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Thu, 13 Jul 2017 10:08:59 +0200
+
+postgresql-10 (10~beta1-1) experimental; urgency=medium
+
+  * Team upload.
+  * First PostgreSQL 10 Beta release.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 09 Aug 2016 10:01:06 +0200
+
+postgresql-10 (10~~devel-1) UNRELEASED; urgency=medium
+
+  * New major upstream version 10; packaging based on postgresql-9.6.
+  * Merge postgresql-contrib-10 package into postgresql-10. The added
+    packaging complexity doesn't seem worth the split anymore given the extra
+    dependencies are typically very small on average systems, or already
+    installed anyway (libuuid, libxslt).
+  * Enable ICU support.
+
+ -- Christoph Berg <christoph.berg@credativ.de>  Tue, 09 Aug 2016 10:01:06 +0200
